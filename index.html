@@ -32,42 +32,20 @@
       <!-- MAIN = área principal de conteúdo -->
       <main>
         <!-- ===== SEÇÃO 1: BUSCA ===== -->
-        <section class="search-section" aria-label="Busca de cidade">
-          <!-- Formulário para o usuário digitar o nome da cidade (aceita uma ou várias cidades separadas por vírgula) -->
+        <section class="search-section">
+          <!-- Formulário para o usuário digitar o nome da cidade -->
           <form id="searchForm">
-            <label for="cityInput" class="visually-hidden"
-              >Cidade (ou lista separada por vírgula)</label
-            >
-            <div class="input-group">
-              <input
-                type="text"
-                id="cityInput"
-                placeholder="Cidade ou várias separadas por vírgula (ex: São Paulo, Rio de Janeiro)"
-                autocomplete="off"
-                aria-autocomplete="list"
-                aria-controls="searchSuggestions"
-              />
-              <button
-                type="button"
-                id="clearSearchBtn"
-                class="clear-btn"
-                aria-label="Limpar campo"
-              >
-                ✕
-              </button>
-              <button type="submit" id="searchBtn">Buscar</button>
-            </div>
-            <ul
-              id="searchSuggestions"
-              class="suggestions hidden"
-              role="listbox"
-              aria-label="Sugestões de cidades"
-            ></ul>
+            <!-- Campo de entrada (input) para a cidade -->
+            <input
+              type="text"
+              id="cityInput"
+              placeholder="Digite o nome da cidade..."
+              autocomplete="off"
+            />
+            <!-- Botão para enviar o formulário -->
+            <button type="submit">Buscar</button>
           </form>
         </section>
-
-        <!-- OBS: agora é possível passar múltiplas cidades no mesmo input acima,
-             separadas por vírgula. Exemplo: "São Paulo, Rio de Janeiro, Salvador" -->
 
         <!-- ===== SEÇÃO 2: RESULTADO DO CLIMA ===== -->
         <!-- Esta seção fica escondida até o usuário buscar uma cidade -->
@@ -109,19 +87,7 @@
                 <span id="windSpeed" class="value"></span>
               </div>
             </div>
-            <!-- Previsão para vários dias (3-5 dias) -->
-            <div id="forecastSection" class="forecast-section hidden">
-              <h3 id="forecastTitle">Previsão para os próximos dias</h3>
-              <div id="forecastContainer" class="forecast-container"></div>
-            </div>
           </div>
-        </section>
-
-        <!-- ===== SEÇÃO 2.5: RESULTADO DA COMPARAÇÃO ===== -->
-        <!-- Esta seção fica escondida até o usuário comparar múltiplas cidades -->
-        <section id="comparisonSection" class="comparison-section hidden">
-          <h2>Comparação de Temperatura entre Cidades</h2>
-          <div id="comparisonResults" class="comparison-results"></div>
         </section>
 
         <!-- ===== SEÇÃO 3: MENSAGEM DE ERRO ===== -->

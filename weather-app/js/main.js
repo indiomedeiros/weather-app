@@ -6,14 +6,21 @@
 // PASSO 1: Buscar elementos do HTML
 // document.getElementById() encontra elementos pelo ID no HTML
 
-// Elementos do formulário de busca
+// Elementos do formulário de busca (aceita uma ou múltiplas cidades separadas por vírgula)
 const searchForm = document.getElementById("searchForm");
 const cityInput = document.getElementById("cityInput");
+const clearSearchBtn = document.getElementById("clearSearchBtn");
+const searchSuggestions = document.getElementById("searchSuggestions");
+const searchBtn = document.getElementById("searchBtn");
 
 // Elementos das seções da página
 const weatherSection = document.getElementById("weatherSection");
 const errorSection = document.getElementById("errorSection");
 const loadingSection = document.getElementById("loadingSection");
+const comparisonSection = document.getElementById("comparisonSection");
+const comparisonResults = document.getElementById("comparisonResults");
+const forecastSection = document.getElementById("forecastSection");
+const forecastContainer = document.getElementById("forecastContainer");
 
 // Elementos para exibir os dados do clima
 const cityName = document.getElementById("cityName");
@@ -34,26 +41,294 @@ const errorMessage = document.getElementById("errorMessage");
 searchForm.addEventListener("submit", async function (e) {
   // e.preventDefault() evita que a página recarregue
   e.preventDefault();
-
   // Pegar o texto que o usuário digitou
-  // .trim() remove espaços em branco
-  const city = cityInput.value.trim();
+  const raw = cityInput.value.trim();
 
-  // Verificar se digitou algo
-  if (!city) {
-    showError("Por favor, digite o nome de uma cidade.");
-    return; // Parar aqui
+  if (!raw) {
+    showError(
+      "Por favor, digite o nome de uma cidade ou várias separadas por vírgula.",
+    );
+    return;
   }
 
-  // Buscar o clima da cidade digitada
-  await fetchWeather(city);
+  // Verificar se o usuário enviou múltiplas cidades (separadas por vírgula)
+  const parts = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (parts.length === 1) {
+    // Única cidade: comportamento original
+    await fetchWeather(parts[0]);
+  } else {
+    // Múltiplas cidades: buscar comparação
+    await fetchWeatherComparison(parts);
+  }
 
   // Limpar o campo de entrada
   cityInput.value = "";
 });
 
+// Clear button
+if (clearSearchBtn) {
+  clearSearchBtn.addEventListener("click", function () {
+    cityInput.value = "";
+    cityInput.focus();
+    hideSuggestions();
+  });
+}
+
+// Recent searches (localStorage)
+function getRecentCities() {
+  try {
+    return JSON.parse(localStorage.getItem("recentCities") || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveRecentCity(city) {
+  if (!city) return;
+  const normalized = city.trim();
+  const list = getRecentCities().filter(
+    (c) => c.toLowerCase() !== normalized.toLowerCase(),
+  );
+  list.unshift(normalized);
+  localStorage.setItem("recentCities", JSON.stringify(list.slice(0, 10)));
+}
+
+// Suggestions render/hide
+function renderSuggestions(query) {
+  if (!searchSuggestions) return;
+  const recent = getRecentCities();
+  const q = (query || "").trim().toLowerCase();
+  if (!q) {
+    searchSuggestions.classList.add("hidden");
+    searchSuggestions.innerHTML = "";
+    return;
+  }
+  const matches = recent.filter((c) => c.toLowerCase().includes(q));
+  if (matches.length === 0) {
+    searchSuggestions.classList.add("hidden");
+    searchSuggestions.innerHTML = "";
+    return;
+  }
+  searchSuggestions.innerHTML = matches
+    .map(
+      (m) => `<li class="suggestion-item" tabindex="0">${escapeHtml(m)}</li>`,
+    )
+    .join("");
+  searchSuggestions.classList.remove("hidden");
+}
+
+function hideSuggestions() {
+  if (!searchSuggestions) return;
+  searchSuggestions.classList.add("hidden");
+  searchSuggestions.innerHTML = "";
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&"'<>]/g, function (m) {
+    return {
+      "&": "&amp;",
+      '"': "&quot;",
+      "'": "&#39;",
+      "<": "&lt;",
+      ">": "&gt;",
+    }[m];
+  });
+}
+
+// Input events for suggestions
+if (cityInput) {
+  cityInput.addEventListener("input", function () {
+    renderSuggestions(cityInput.value);
+  });
+}
+
+// Click on suggestion
+document.addEventListener("click", function (e) {
+  if (
+    e.target &&
+    e.target.classList &&
+    e.target.classList.contains("suggestion-item")
+  ) {
+    cityInput.value = e.target.textContent;
+    hideSuggestions();
+    cityInput.focus();
+  } else if (!e.target.closest || !e.target.closest(".input-group")) {
+    hideSuggestions();
+  }
+});
+
+// Save recent city on successful single-city load
+const originalDisplayWeather = displayWeather;
+displayWeather = function (data, cityFullName, coordinates) {
+  try {
+    if (cityFullName) saveRecentCity(cityFullName);
+  } catch (e) {}
+  return originalDisplayWeather(data, cityFullName, coordinates);
+};
+
+// note: compareForm removed; single input handles both single and multiple cities
+
 // ============================================
-// FUNÇÃO: Buscar o clima de uma cidade
+// FUNÇÃO: Buscar e comparar clima de múltiplas cidades
+// ============================================
+async function fetchWeatherComparison(cityNames) {
+  showLoading();
+  hideError();
+
+  try {
+    // Chamar a função de comparação do api.js
+    const comparisonData = await compareWeatherByCities(cityNames);
+
+    // Verificar se obteve dados
+    if (!comparisonData || comparisonData.length === 0) {
+      showError(
+        "Nenhuma das cidades foi encontrada. Verifique os nomes e tente novamente.",
+      );
+      return;
+    }
+
+    // Exibir os dados da comparação na tela
+    displayWeatherComparison(comparisonData);
+  } catch (error) {
+    showError(
+      "Erro ao buscar dados da comparação. Tente novamente mais tarde.",
+    );
+    console.error(error);
+  }
+}
+
+// ============================================
+// FUNÇÃO: Exibir a comparação de cidades na tela
+// ============================================
+function displayWeatherComparison(comparisonData) {
+  hideLoading();
+
+  // Limpar resultados anteriores
+  comparisonResults.innerHTML = "";
+
+  if (!comparisonData || comparisonData.length === 0) {
+    showError("Nenhuma cidade foi encontrada para comparação.");
+    return;
+  }
+
+  // Encontrar cidades com extremos
+  const hottest = getHottestCity(comparisonData);
+  const coldest = getColdestCity(comparisonData);
+  const averageTemp = getAverageTemperature(comparisonData);
+  const highestHumidity = getHighestHumidityCity(comparisonData);
+  const highestWindSpeed = getHighestWindSpeedCity(comparisonData);
+
+  // Criar HTML com as cidades
+  let html = "<div class='cities-grid'>";
+
+  for (const city of comparisonData) {
+    const isBothHottest = hottest && city.city === hottest.city;
+    const isBothColdest = coldest && city.city === coldest.city;
+    const highlightClass = isBothHottest
+      ? "hottest"
+      : isBothColdest
+        ? "coldest"
+        : "";
+    const htmlHighlight = isBothHottest ? " ☀️" : isBothColdest ? " ❄️" : "";
+
+    html += `
+      <div class="city-card ${highlightClass}">
+        <h3>${city.city}${htmlHighlight}</h3>
+        <p class="temp-main">${Math.round(city.temperature)}°C</p>
+        <p class="feels-like">Sensação térmica: ${Math.round(city.feelsLike)}°C</p>
+        <p class="humidity">💧 Umidade: ${city.humidity}%</p>
+        <p class="wind">💨 Vento: ${Math.round(city.windSpeed)} km/h</p>
+        <p class="coords">${city.latitude.toFixed(2)}°, ${city.longitude.toFixed(2)}°</p>
+      </div>
+    `;
+  }
+
+  html += "</div>";
+
+  // Adicionar resumo estatístico
+  html += `
+    <div class="comparison-summary">
+      <h3>Resumo Comparativo</h3>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="label">Mais Quente:</span>
+          <span class="value">${hottest?.city || "N/A"} - ${hottest ? Math.round(hottest.temperature) : "N/A"}°C</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Mais Frio:</span>
+          <span class="value">${coldest?.city || "N/A"} - ${coldest ? Math.round(coldest.temperature) : "N/A"}°C</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Temperatura Média:</span>
+          <span class="value">${Math.round(averageTemp)}°C</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Maior Umidade:</span>
+          <span class="value">${highestHumidity?.city || "N/A"} - ${highestHumidity?.humidity || "N/A"}%</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Maior Velocidade do Vento:</span>
+          <span class="value">${highestWindSpeed?.city || "N/A"} - ${highestWindSpeed ? Math.round(highestWindSpeed.windSpeed) : "N/A"} km/h</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  comparisonResults.innerHTML = html;
+
+  // Mostrar a seção de comparação e esconder outras
+  comparisonSection.classList.remove("hidden");
+  weatherSection.classList.add("hidden");
+  errorSection.classList.add("hidden");
+  loadingSection.classList.add("hidden");
+}
+// ============================================
+// Funções utilitárias para comparação
+// ============================================
+
+function getHottestCity(list) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return list.reduce((best, cur) => {
+    if (!best) return cur;
+    return cur.temperature > best.temperature ? cur : best;
+  }, null);
+}
+
+function getColdestCity(list) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return list.reduce((best, cur) => {
+    if (!best) return cur;
+    return cur.temperature < best.temperature ? cur : best;
+  }, null);
+}
+
+function getAverageTemperature(list) {
+  if (!Array.isArray(list) || list.length === 0) return 0;
+  const sum = list.reduce((s, c) => s + Number(c.temperature || 0), 0);
+  return sum / list.length;
+}
+
+function getHighestHumidityCity(list) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return list.reduce((best, cur) => {
+    if (!best) return cur;
+    return (cur.humidity || 0) > (best.humidity || 0) ? cur : best;
+  }, null);
+}
+
+function getHighestWindSpeedCity(list) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return list.reduce((best, cur) => {
+    if (!best) return cur;
+    return (cur.windSpeed || 0) > (best.windSpeed || 0) ? cur : best;
+  }, null);
+}
+
+// ============================================
 // ============================================
 // Esta função:
 // 1) Mostra a seção de carregamento
@@ -86,12 +361,76 @@ async function fetchWeather(cityName) {
 
     // ETAPA 3: Exibir os dados na tela
     displayWeather(weatherData, cityName, coordinates);
+    // ETAPA 4: Obter e exibir previsão para múltiplos dias (default 5 dias)
+    try {
+      const forecast = await getWeatherForecast(
+        coordinates.latitude,
+        coordinates.longitude,
+        5,
+      );
+      displayForecast(forecast);
+    } catch (err) {
+      console.warn("Não foi possível carregar a previsão multi-dia:", err);
+      // Não interrompe a exibição do clima atual
+    }
   } catch (error) {
     // Se algo der errado, mostrar mensagem de erro
     showError("Erro ao buscar dados. Tente novamente mais tarde.");
 
     // Mostrar o erro no console (para debug)
     console.error(error);
+  }
+}
+
+// ============================================
+// FUNÇÃO: Exibir previsão multi-dia
+// Espera objeto retornado por getWeatherForecast()
+// ============================================
+function displayForecast(forecastData) {
+  if (!forecastSection || !forecastContainer) return;
+
+  try {
+    const daily = forecastData && forecastData.daily;
+    if (!daily || !daily.time || daily.time.length === 0) {
+      forecastSection.classList.add("hidden");
+      return;
+    }
+
+    // Construir HTML dos cards de previsão
+    const days = daily.time.length;
+    const times = daily.time;
+    const tMax = daily.temperature_2m_max || [];
+    const tMin = daily.temperature_2m_min || [];
+    const weatherCodes = daily.weathercode || [];
+
+    let html = "";
+    for (let i = 0; i < days; i++) {
+      const date = new Date(times[i]);
+      const dateStr = date.toLocaleDateString("pt-BR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+      });
+      const max = typeof tMax[i] !== "undefined" ? Math.round(tMax[i]) : "N/A";
+      const min = typeof tMin[i] !== "undefined" ? Math.round(tMin[i]) : "N/A";
+      const code =
+        typeof weatherCodes[i] !== "undefined" ? weatherCodes[i] : null;
+      const desc = getWeatherDescription(code);
+
+      html += `
+        <div class="forecast-card">
+          <div class="forecast-date">${dateStr}</div>
+          <div class="forecast-desc">${desc}</div>
+          <div class="forecast-temps">${max}° / ${min}°</div>
+        </div>
+      `;
+    }
+
+    forecastContainer.innerHTML = html;
+    forecastSection.classList.remove("hidden");
+  } catch (err) {
+    console.error("Erro ao renderizar previsão:", err);
+    forecastSection.classList.add("hidden");
   }
 }
 
@@ -232,6 +571,8 @@ function showWeatherSection() {
 
   // Esconder a seção de carregamento
   loadingSection.classList.add("hidden");
+  // Esconder a seção de comparação quando mostramos uma cidade única
+  if (comparisonSection) comparisonSection.classList.add("hidden");
 }
 
 /**
