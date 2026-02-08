@@ -23,8 +23,6 @@ const description = document.getElementById("description");
 const feelsLike = document.getElementById("feelsLike");
 const humidity = document.getElementById("humidity");
 const windSpeed = document.getElementById("windSpeed");
-const pressure = document.getElementById("pressure");
-const uvIndex = document.getElementById("uvIndex");
 const errorMessage = document.getElementById("errorMessage");
 
 // ============================================
@@ -151,19 +149,6 @@ function displayWeather(data, cityFullName, coordinates) {
   // Mostrar velocidade do vento (km/h)
   const velocidade = current.wind_speed_10m;
   windSpeed.textContent = `${Math.round(velocidade)} km/h`;
-
-  // Mostrar pressão atmosférica
-  const pressaoValor = current.pressure;
-  pressure.textContent = `${pressaoValor} hPa`;
-
-  // Mostrar índice UV (se disponível)
-  const indiceUVValor = current.uv_index;
-  if (indiceUVValor) {
-    // Arredondar para 1 casa decimal
-    uvIndex.textContent = `${Math.round(indiceUVValor * 10) / 10}`;
-  } else {
-    uvIndex.textContent = "N/A"; // N/A = Não disponível
-  }
 
   // Mostrar a seção de clima
   showWeatherSection();
