@@ -320,6 +320,26 @@ function createMockFetch(mockData, shouldFail = false) {
   };
 }
 
+
+// Helper para atribuir fetch globalmente com função customizada
+function setGlobalFetch(fetchFn) {
+  if (typeof window !== "undefined") {
+    window.fetch = fetchFn;
+  }
+  if (typeof global !== "undefined") {
+    global.fetch = fetchFn;
+  }
+  if (typeof globalThis !== "undefined") {
+    globalThis.fetch = fetchFn;
+  }
+}
+
+// Helper para atribuir fetch globalmente (funciona no navegador e Node.js)
+function setMockFetch(mockData, shouldFail = false) {
+  const mockFetch = createMockFetch(mockData, shouldFail);
+  setGlobalFetch(mockFetch);
+}
+
 // ============================================
 // TESTES PARA getCoordinates
 // ============================================
@@ -328,14 +348,10 @@ tester.describe("getCoordinates - Testes de Sucesso", () => {
   tester.it("deve retornar coordenadas para 'São Paulo'", async (assert) => {
     // Arrange
     const cityName = "São Paulo";
-    console.log(`   [DEBUG] Preparando mock para ${cityName}`);
-    global.fetch = createMockFetch(mockResponses.saoPauloCoordinates);
-    console.log(`   [DEBUG] Mock atribuído`);
+    setMockFetch(mockResponses.saoPauloCoordinates);
 
     // Act
-    console.log(`   [DEBUG] Chamando getCoordinates("${cityName}")`);
     const result = await getCoordinates(cityName);
-    console.log(`   [DEBUG] Resultado:`, result);
 
     // Assert
     assert.assert(result !== null, "Resultado não deve ser null");
@@ -350,7 +366,7 @@ tester.describe("getCoordinates - Testes de Sucesso", () => {
     async (assert) => {
       // Arrange
       const cityName = "Rio de Janeiro";
-      global.fetch = createMockFetch(mockResponses.rioCoordinates);
+      setMockFetch(mockResponses.rioCoordinates);
 
       // Act
       const result = await getCoordinates(cityName);
@@ -365,7 +381,7 @@ tester.describe("getCoordinates - Testes de Sucesso", () => {
   tester.it("deve retornar coordenadas para 'London'", async (assert) => {
     // Arrange
     const cityName = "London";
-    global.fetch = createMockFetch(mockResponses.londonCoordinates);
+    setMockFetch(mockResponses.londonCoordinates);
 
     // Act
     const result = await getCoordinates(cityName);
@@ -379,7 +395,7 @@ tester.describe("getCoordinates - Testes de Sucesso", () => {
   tester.it("deve retornar coordenadas para 'Tokyo'", async (assert) => {
     // Arrange
     const cityName = "Tokyo";
-    global.fetch = createMockFetch(mockResponses.tokyoCoordinates);
+    setMockFetch(mockResponses.tokyoCoordinates);
 
     // Act
     const result = await getCoordinates(cityName);
@@ -392,7 +408,7 @@ tester.describe("getCoordinates - Testes de Sucesso", () => {
 
   tester.it("deve ter todas as propriedades obrigatórias", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saoPauloCoordinates);
+    setMockFetch(mockResponses.saoPauloCoordinates);
 
     // Act
     const result = await getCoordinates("São Paulo");
@@ -407,7 +423,7 @@ tester.describe("getCoordinates - Testes de Sucesso", () => {
 
   tester.it("latitude e longitude devem ser números", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saoPauloCoordinates);
+    setMockFetch(mockResponses.saoPauloCoordinates);
 
     // Act
     const result = await getCoordinates("São Paulo");
@@ -428,7 +444,7 @@ tester.describe("getCoordinates - Testes de Erro", () => {
   tester.it("deve retornar null para cidade inexistente", async (assert) => {
     // Arrange
     const cityName = "XyzAbcInvalidCity123999";
-    global.fetch = createMockFetch(mockResponses.notFound);
+    setMockFetch(mockResponses.notFound);
 
     // Act
     const result = await getCoordinates(cityName);
@@ -443,7 +459,7 @@ tester.describe("getCoordinates - Testes de Erro", () => {
 
   tester.it("deve retornar null para string vazia", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.notFound);
+    setMockFetch(mockResponses.notFound);
 
     // Act
     const result = await getCoordinates("");
@@ -454,7 +470,7 @@ tester.describe("getCoordinates - Testes de Erro", () => {
 
   tester.it("deve lançar erro em caso de falha de conexão", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(null, true);
+    setMockFetch(null, true);
 
     // Act & Assert
     await assert.assertThrows(async () => {
@@ -466,7 +482,7 @@ tester.describe("getCoordinates - Testes de Erro", () => {
     "deve lançar erro quando API retorna status 400",
     async (assert) => {
       // Arrange
-      global.fetch = function mockFetch(url) {
+      setGlobalFetch(function mockFetch(url) {
         return Promise.resolve({
           ok: false,
           status: 400,
@@ -487,7 +503,7 @@ tester.describe("getCoordinates - Testes de Erro", () => {
     "deve lançar erro quando API retorna status 500",
     async (assert) => {
       // Arrange
-      global.fetch = function mockFetch(url) {
+      setGlobalFetch(function mockFetch(url) {
         return Promise.resolve({
           ok: false,
           status: 500,
@@ -508,7 +524,7 @@ tester.describe("getCoordinates - Testes de Erro", () => {
 tester.describe("getCoordinates - Edge Cases", () => {
   tester.it("deve encontrar cidades com acentos: São Paulo", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saoPauloCoordinates);
+    setMockFetch(mockResponses.saoPauloCoordinates);
 
     // Act
     const result = await getCoordinates("São Paulo");
@@ -533,7 +549,7 @@ tester.describe("getCoordinates - Edge Cases", () => {
           },
         ],
       };
-      global.fetch = createMockFetch(nyCoordinates);
+      setMockFetch(nyCoordinates);
 
       // Act
       const result = await getCoordinates("New York");
@@ -567,7 +583,7 @@ tester.describe("getCoordinates - Edge Cases", () => {
           },
         ],
       };
-      global.fetch = createMockFetch(multipleResults);
+      setMockFetch(multipleResults);
 
       // Act
       const result = await getCoordinates("Springfield");
@@ -584,7 +600,7 @@ tester.describe("getCoordinates - Edge Cases", () => {
 
   tester.it("coordenadas devem estar em intervalos válidos", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saoPauloCoordinates);
+    setMockFetch(mockResponses.saoPauloCoordinates);
 
     // Act
     const result = await getCoordinates("São Paulo");
@@ -612,7 +628,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
       // Arrange
       const latitude = -23.5505;
       const longitude = -46.6333;
-      global.fetch = createMockFetch(mockResponses.saulopWeather);
+      setMockFetch(mockResponses.saulopWeather);
 
       // Act
       const result = await getWeatherData(latitude, longitude);
@@ -628,7 +644,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
 
   tester.it("deve ter propriedade 'timezone'", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -647,7 +663,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
 
   tester.it("deve ter propriedade 'elevation'", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -661,7 +677,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
 
   tester.it("objeto 'current' deve ter temperatura", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -675,7 +691,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
 
   tester.it("objeto 'current' deve ter umidade", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -689,7 +705,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
 
   tester.it("objeto 'current' deve ter sensação térmica", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -703,7 +719,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
 
   tester.it("objeto 'current' deve ter código de clima", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -717,7 +733,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
 
   tester.it("objeto 'current' deve ter velocidade do vento", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -733,7 +749,7 @@ tester.describe("getWeatherData - Testes de Sucesso", () => {
 tester.describe("getWeatherData - Validação de Tipos", () => {
   tester.it("temperatura deve ser número", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -747,7 +763,7 @@ tester.describe("getWeatherData - Validação de Tipos", () => {
 
   tester.it("umidade deve ser número", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -761,7 +777,7 @@ tester.describe("getWeatherData - Validação de Tipos", () => {
 
   tester.it("umidade deve estar entre 0 e 100", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -776,7 +792,7 @@ tester.describe("getWeatherData - Validação de Tipos", () => {
 
   tester.it("vento deve ser número", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -790,7 +806,7 @@ tester.describe("getWeatherData - Validação de Tipos", () => {
 
   tester.it("vento deve ser não negativo", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -804,7 +820,7 @@ tester.describe("getWeatherData - Validação de Tipos", () => {
 
   tester.it("código de clima deve ser número", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -820,7 +836,7 @@ tester.describe("getWeatherData - Validação de Tipos", () => {
 tester.describe("getWeatherData - Testes de Erro", () => {
   tester.it("deve lançar erro em falha de conexão", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(null, true);
+    setMockFetch(null, true);
 
     // Act & Assert
     await assert.assertThrows(async () => {
@@ -832,7 +848,7 @@ tester.describe("getWeatherData - Testes de Erro", () => {
     "deve lançar erro quando API retorna status 400",
     async (assert) => {
       // Arrange
-      global.fetch = function mockFetch(url) {
+      setGlobalFetch(function mockFetch(url) {
         return Promise.resolve({
           ok: false,
           status: 400,
@@ -853,7 +869,7 @@ tester.describe("getWeatherData - Testes de Erro", () => {
     "deve lançar erro quando API retorna status 500",
     async (assert) => {
       // Arrange
-      global.fetch = function mockFetch(url) {
+      setGlobalFetch(function mockFetch(url) {
         return Promise.resolve({
           ok: false,
           status: 500,
@@ -872,7 +888,7 @@ tester.describe("getWeatherData - Testes de Erro", () => {
 
   tester.it("deve lançar erro com JSON inválido", async (assert) => {
     // Arrange
-    global.fetch = function mockFetch(url) {
+    setGlobalFetch(function mockFetch(url) {
       return Promise.resolve({
         ok: true,
         status: 200,
@@ -895,7 +911,7 @@ tester.describe("getWeatherData - Edge Cases", () => {
     "deve funcionar com coordenadas no Equador (0, 0)",
     async (assert) => {
       // Arrange
-      global.fetch = createMockFetch(mockResponses.equatorWeather);
+      setMockFetch(mockResponses.equatorWeather);
 
       // Act
       const result = await getWeatherData(0, 0);
@@ -911,7 +927,7 @@ tester.describe("getWeatherData - Edge Cases", () => {
     "deve funcionar com coordenadas negativas (hemisfério sul)",
     async (assert) => {
       // Arrange
-      global.fetch = createMockFetch(mockResponses.sydneyWeather);
+      setMockFetch(mockResponses.sydneyWeather);
 
       // Act
       const result = await getWeatherData(-33.8688, 151.2093);
@@ -932,7 +948,7 @@ tester.describe("getWeatherData - Edge Cases", () => {
         longitude: -74.006,
         timezone: "America/New_York",
       };
-      global.fetch = createMockFetch(newyorkWeather);
+      setMockFetch(newyorkWeather);
 
       // Act
       const result = await getWeatherData(40.7128, -74.006);
@@ -951,7 +967,7 @@ tester.describe("getWeatherData - Edge Cases", () => {
       longitude: 0,
       timezone: "UTC",
     };
-    global.fetch = createMockFetch(poleWeather);
+    setMockFetch(poleWeather);
 
     // Act
     const result = await getWeatherData(90, 0);
@@ -968,7 +984,7 @@ tester.describe("getWeatherData - Edge Cases", () => {
       longitude: 0,
       timezone: "UTC",
     };
-    global.fetch = createMockFetch(poleWeather);
+    setMockFetch(poleWeather);
 
     // Act
     const result = await getWeatherData(-90, 0);
@@ -979,7 +995,7 @@ tester.describe("getWeatherData - Edge Cases", () => {
 
   tester.it("timezone deve ser preenchido corretamente", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.saulopWeather);
+    setMockFetch(mockResponses.saulopWeather);
 
     // Act
     const result = await getWeatherData(-23.5505, -46.6333);
@@ -999,7 +1015,7 @@ tester.describe("getWeatherData - Edge Cases", () => {
 tester.describe("Integração Completa", () => {
   tester.it("deve buscar coordenadas e depois clima", async (assert) => {
     // Arrange
-    global.fetch = function (url) {
+    setGlobalFetch(function (url) {
       // Se for geocoding
       if (url.includes("geocoding-api")) {
         return Promise.resolve({
@@ -1018,7 +1034,7 @@ tester.describe("Integração Completa", () => {
           text: async () => JSON.stringify(mockResponses.saulopWeather),
         });
       }
-    };
+    });
 
     // Act
     const coordinates = await getCoordinates("São Paulo");
@@ -1045,7 +1061,7 @@ tester.describe("Integração Completa", () => {
 
   tester.it("deve parar em erro se cidade não encontrada", async (assert) => {
     // Arrange
-    global.fetch = createMockFetch(mockResponses.notFound);
+    setMockFetch(mockResponses.notFound);
 
     // Act
     const coordinates = await getCoordinates("CidadeInvalida123");
@@ -1062,7 +1078,7 @@ tester.describe("Integração Completa", () => {
     "deve retornar dados consistentes para mesma cidade",
     async (assert) => {
       // Arrange
-      global.fetch = createMockFetch(mockResponses.saoPauloCoordinates);
+      setMockFetch(mockResponses.saoPauloCoordinates);
 
       // Act
       const result1 = await getCoordinates("São Paulo");
