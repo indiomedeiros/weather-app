@@ -88,7 +88,7 @@ Este projeto está disponível para uso livre e educacional.
 
 ## ✨ Autor
 
-Developed with ❤️ by [Seu Nome]
+Developed with ❤️ by Índio Medeiros
 
 ---
 
