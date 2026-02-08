@@ -12,6 +12,7 @@ class TestRunner {
   constructor() {
     this.tests = []; // Lista de testes
     this.results = []; // Resultados dos testes
+    this.beforeEachCallbacks = []; // Callbacks executados antes de cada teste
   }
 
   // Agrupar testes por categoria
@@ -19,6 +20,11 @@ class TestRunner {
     console.group(`📋 ${группа}`);
     callback();
     console.groupEnd();
+  }
+
+  // Executar função antes de cada teste
+  beforeEach(callback) {
+    this.beforeEachCallbacks.push(callback);
   }
 
   // Definir um teste individual
@@ -75,6 +81,11 @@ class TestRunner {
 
     for (const test of this.tests) {
       try {
+        // Executar todos os callbacks beforeEach
+        for (const callback of this.beforeEachCallbacks) {
+          callback();
+        }
+        
         await test.testFn(this);
         console.log(`✅ ${test.description}`);
         passed++;
@@ -1097,6 +1108,298 @@ tester.describe("Integração Completa", () => {
       );
     },
   );
+});
+
+// ============================================
+// TESTES DE CACHE (10 minutos)
+// ============================================
+tester.describe("Cache de Coordenadas", () => {
+  // Limpar cache antes de cada teste
+  tester.beforeEach(() => {
+    apiCache.coordinates = {};
+    apiCache.weather = {};
+  });
+
+  tester.it("deve armazenar coordenadas no cache", async (assert) => {
+    // Arrange
+    let fetchCallCount = 0;
+    setGlobalFetch(function (url) {
+      fetchCallCount++;
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            ok: true,
+            status: 200,
+            json: async () => mockResponses.saoPauloCoordinates,
+          });
+        }, 10);
+      });
+    });
+
+    // Act
+    const result1 = await getCoordinates("São Paulo");
+    const result2 = await getCoordinates("São Paulo");
+
+    // Assert - Deve chamar fetch apenas 1 vez (segunda vem do cache)
+    assert.assertEqual(
+      fetchCallCount,
+      1,
+      "Fetch deve ser chamado apenas 1 vez (segunda vem do cache)",
+    );
+    assert.assertEqual(
+      result1.latitude,
+      result2.latitude,
+      "Coordenadas devem ser idênticas",
+    );
+  });
+
+  tester.it(
+    "deve usar cache se coordenadas foram buscadas há menos de 10 min",
+    async (assert) => {
+      // Arrange
+      setGlobalFetch(function (url) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              status: 200,
+              json: async () => mockResponses.saoPauloCoordinates,
+            });
+          }, 10);
+        });
+      });
+
+      // Act - Simular busca e verificar cache
+      const result1 = await getCoordinates("São Paulo");
+      const cached = getCachedCoordinates("São Paulo");
+
+      // Assert
+      assert.assertEqual(
+        cached !== null,
+        true,
+        "Deve existir entrada no cache",
+      );
+      assert.assertEqual(
+        cached.latitude,
+        result1.latitude,
+        "Cache deve ter as coordenadas corretas",
+      );
+    },
+  );
+
+  tester.it(
+    "deve retornar null do cache se não houver entrada",
+    async (assert) => {
+      // Act
+      const cached = getCachedCoordinates("CidadeInexistente");
+
+      // Assert
+      assert.assertEqual(cached, null, "Cache deve retornar null");
+    },
+  );
+});
+
+// ============================================
+// TESTES DE CACHE DE CLIMA
+// ============================================
+tester.describe("Cache de Dados de Clima", () => {
+  // Limpar cache antes de cada teste
+  tester.beforeEach(() => {
+    apiCache.coordinates = {};
+    apiCache.weather = {};
+  });
+
+  tester.it("deve armazenar dados de clima no cache", async (assert) => {
+    // Arrange
+    let fetchCallCount = 0;
+    const weatherData = { ...mockResponses.saoPauloWeather };
+    setGlobalFetch(function (url) {
+      fetchCallCount++;
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ ...weatherData }),
+          });
+        }, 10);
+      });
+    });
+
+    // Act
+    const result1 = await getWeatherData(-23.5505, -46.6333);
+    const result2 = await getWeatherData(-23.5505, -46.6333);
+
+    // Assert
+    assert.assertEqual(
+      fetchCallCount,
+      1,
+      "Fetch deve ser chamado apenas 1 vez (segunda vem do cache)",
+    );
+    assert.assertEqual(
+      result1.timezone,
+      result2.timezone,
+      "Dados devem ser idênticos",
+    );
+  });
+
+  tester.it(
+    "deve usar cache se dados de clima foram buscados há menos de 10 min",
+    async (assert) => {
+      // Arrange
+      const weatherData = { ...mockResponses.saoPauloWeather };
+      setGlobalFetch(function (url) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              status: 200,
+              json: async () => ({ ...weatherData }),
+            });
+          }, 10);
+        });
+      });
+
+      // Act
+      const result1 = await getWeatherData(-23.5505, -46.6333);
+      const cached = getCachedWeather(-23.5505, -46.6333);
+
+      // Assert
+      assert.assertEqual(
+        cached !== null,
+        true,
+        "Deve existir entrada no cache de clima",
+      );
+      assert.assertEqual(
+        cached.timezone,
+        result1.timezone,
+        "Cache deve ter os dados corretos",
+      );
+    },
+  );
+
+  tester.it(
+    "deve manter cache separado para diferentes coordenadas",
+    async (assert) => {
+      // Arrange
+      const saoPauloData = { ...mockResponses.saoPauloWeather };
+      const sydneyData = { ...mockResponses.sydneyWeather };
+
+      setGlobalFetch(function (url) {
+        if (url.includes("latitude=-23.5505")) {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve({
+                ok: true,
+                status: 200,
+                json: async () => ({ ...saoPauloData }),
+              });
+            }, 10);
+          });
+        } else {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve({
+                ok: true,
+                status: 200,
+                json: async () => ({ ...sydneyData }),
+              });
+            }, 10);
+          });
+        }
+      });
+
+      // Act
+      const result1 = await getWeatherData(-23.5505, -46.6333); // São Paulo
+      const result2 = await getWeatherData(-33.8688, 151.2093); // Sydney
+
+      const cached1 = getCachedWeather(-23.5505, -46.6333);
+      const cached2 = getCachedWeather(-33.8688, 151.2093);
+
+      // Assert
+      assert.assertEqual(
+        cached1 !== null,
+        true,
+        "Cache deve ter dados de São Paulo",
+      );
+      assert.assertEqual(
+        cached2 !== null,
+        true,
+        "Cache deve ter dados de Sydney",
+      );
+      assert.assertEqual(
+        cached1.timezone !== cached2.timezone,
+        true,
+        "Diferentes coordenadas devem ter caches separados",
+      );
+    },
+  );
+});
+
+// ============================================
+// TESTES DE EXPIRAÇÃO DE CACHE
+// ============================================
+tester.describe("Expiração de Cache", () => {
+  // Limpar cache antes de cada teste
+  tester.beforeEach(() => {
+    apiCache.coordinates = {};
+    apiCache.weather = {};
+  });
+
+  tester.it("deve detectar cache expirado", async (assert) => {
+    // Arrange - Criar entrada antiga no cache
+    const oldTimestamp = Date.now() - (11 * 60 * 1000); // 11 minutos atrás
+    apiCache.coordinates["São Paulo"] = {
+      data: {
+        latitude: -23.5505,
+        longitude: -46.6333,
+        name: "São Paulo",
+        country: "Brasil",
+      },
+      timestamp: oldTimestamp,
+    };
+
+    // Act
+    const cached = getCachedCoordinates("São Paulo");
+
+    // Assert
+    assert.assertEqual(cached, null, "Cache expirado deve retornar null");
+    assert.assertEqual(
+      apiCache.coordinates["São Paulo"],
+      undefined,
+      "Entrada expirada deve ser deletada do cache",
+    );
+  });
+
+  tester.it("deve manter cache válido por até 10 minutos", async (assert) => {
+    // Arrange - Criar entrada recente no cache
+    const validTimestamp = Date.now() - (5 * 60 * 1000); // 5 minutos atrás
+    const expectedData = {
+      latitude: -23.5505,
+      longitude: -46.6333,
+      name: "São Paulo",
+      country: "Brasil",
+    };
+    apiCache.coordinates["São Paulo"] = {
+      data: expectedData,
+      timestamp: validTimestamp,
+    };
+
+    // Act
+    const cached = getCachedCoordinates("São Paulo");
+
+    // Assert
+    assert.assertEqual(
+      cached !== null,
+      true,
+      "Cache válido deve retornar dados",
+    );
+    assert.assertEqual(
+      cached.latitude,
+      expectedData.latitude,
+      "Deve retornar dados corretos do cache",
+    );
+  });
 });
 
 // ============================================

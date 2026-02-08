@@ -27,12 +27,12 @@ function isCacheExpired(timestamp) {
 // Função para obter dados do cache de coordenadas
 function getCachedCoordinates(cityName) {
   const cached = apiCache.coordinates[cityName];
-  
+
   if (cached && !isCacheExpired(cached.timestamp)) {
     console.log(`📦 Coordenadas de ${cityName} obtidas do cache`);
     return cached.data;
   }
-  
+
   // Se expirou ou não existe, remover do cache
   if (cached) {
     delete apiCache.coordinates[cityName];
@@ -52,12 +52,12 @@ function setCachedCoordinates(cityName, data) {
 function getCachedWeather(latitude, longitude) {
   const key = `${latitude},${longitude}`;
   const cached = apiCache.weather[key];
-  
+
   if (cached && !isCacheExpired(cached.timestamp)) {
     console.log(`📦 Dados de clima (${key}) obtidos do cache`);
     return cached.data;
   }
-  
+
   // Se expirou ou não existe, remover do cache
   if (cached) {
     delete apiCache.weather[key];
@@ -214,4 +214,47 @@ async function getWeatherData(latitude, longitude) {
     console.error("Erro ao buscar dados de clima:", error);
     throw error;
   }
+}
+
+// ============================================
+// EXPORTAR PARA TESTES
+// ============================================
+// Tornar as funções de cache acessíveis globalmente para testes
+
+// Para Node.js (CommonJS)
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    getCoordinates,
+    getWeatherData,
+    apiCache,
+    getCachedCoordinates,
+    setCachedCoordinates,
+    getCachedWeather,
+    setCachedWeather,
+    isCacheExpired,
+  };
+}
+
+// Para navegadores (window)
+if (typeof window !== "undefined") {
+  window.getCoordinates = getCoordinates;
+  window.getWeatherData = getWeatherData;
+  window.apiCache = apiCache;
+  window.getCachedCoordinates = getCachedCoordinates;
+  window.setCachedCoordinates = setCachedCoordinates;
+  window.getCachedWeather = getCachedWeather;
+  window.setCachedWeather = setCachedWeather;
+  window.isCacheExpired = isCacheExpired;
+}
+
+// Para global (Node.js global)
+if (typeof global !== "undefined") {
+  global.getCoordinates = getCoordinates;
+  global.getWeatherData = getWeatherData;
+  global.apiCache = apiCache;
+  global.getCachedCoordinates = getCachedCoordinates;
+  global.setCachedCoordinates = setCachedCoordinates;
+  global.getCachedWeather = getCachedWeather;
+  global.setCachedWeather = setCachedWeather;
+  global.isCacheExpired = isCacheExpired;
 }
