@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Test Results</title>
+    <style>
+      body {
+        font-family: monospace;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 20px;
+      }
+
+      pre {
+        overflow-x: auto;
+        background: #252526;
+        padding: 15px;
+        border-radius: 5px;
+        max-height: 600px;
+        overflow-y: auto;
+      }
+
+      .success {
+        color: #4ec9b0;
+      }
+
+      .error {
+        color: #f48771;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Debug Test Results</h1>
+    <pre id="results">Carregando testes...</pre>
+
+    <script>
+      // Coletar todas as mensagens
+      let logs = [];
+
+      const originalLog = console.log;
+      const originalError = console.error;
+
+      console.log = function (...args) {
+        const message = args
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg, null, 2) : String(arg)
+          )
+          .join(" ");
+        logs.push(`LOG: ${message}`);
+        originalLog(...args);
+        updateDisplay();
+      };
+
+      console.error = function (...args) {
+        const message = args
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg) : String(arg)
+          )
+          .join("  ");
+        logs.push(`ERROR: ${message}`);
+        originalError(...args);
+        updateDisplay();
+      };
+
+      function updateDisplay() {
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.textContent = logs.join("\n");
+        resultsDiv.scrollTop = resultsDiv.scrollHeight;
+      }
+
+      // Teste básico para verificar carregamento
+      window.addEventListener("load", async () => {
+        logs = [];
+        logs.push("=".repeat(60));
+        logs.push("🧪 INICIANDO VERIFICAÇÃO DE CARREGAMENTO");
+        logs.push("=".repeat(60));
+
+        logs.push(`getCoordinates: ${typeof getCoordinates}`);
+        logs.push(`getWeatherData: ${typeof getWeatherData}`);
+        logs.push(`tester: ${typeof tester}`);
+        logs.push(`tester.tests.length: ${tester?.tests?.length || 'undefined'}`);
+
+        if (tester && tester.tests && tester.tests.length > 0) {
+          logs.push("\nPrimeiros 3 testes:");
+          for (let i = 0; i < Math.min(3, tester.tests.length); i++) {
+            logs.push(`${i + 1}. ${tester.tests[i].description}`);
+          }
+
+          logs.push("\n" + "=".repeat(60));
+          logs.push("🚀 RODANDO TESTES...");
+          logs.push("=".repeat(60));
+
+          try {
+            const result = await tester.run();
+            logs.push("\n" + "=".repeat(60));
+            logs.push(`RESULTADO FINAL: ${result.passed} passou, ${result.failed} falhou`);
+            logs.push("=".repeat(60));
+          } catch (error) {
+            logs.push(`ERRO AO RODAR TESTES: ${error.message}`);
+            logs.push(error.stack);
+          }
+        } else {
+          logs.push("❌ PROBLEMA: tester ou tester.tests não está definido!");
+        }
+
+        updateDisplay();
+      });
+    </script>
+
+    <!-- Scripts em uma ordem específica -->
+    <script src="js/api.js"></script>
+    <script src="js/api.test.js"></script>
+  </body>
+</html>

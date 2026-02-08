@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🧪 Test Runner - App de Clima</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Courier New", monospace;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #1e1e1e;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2em;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        font-size: 1em;
+        opacity: 0.9;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .help-box {
+        background: #f0f4ff;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        margin-bottom: 30px;
+        border-radius: 5px;
+      }
+
+      .help-box h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .help-box p {
+        color: #333;
+        margin: 8px 0;
+        line-height: 1.6;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      button {
+        padding: 12px 24px;
+        font-size: 14px;
+        font-family: "Courier New", monospace;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      button.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      button.secondary {
+        background: #e0e0e0;
+        color: #333;
+      }
+
+      button.secondary:hover {
+        background: #d0d0d0;
+        transform: translateY(-2px);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+
+      .console {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border: 1px solid #3e3e42;
+        border-radius: 5px;
+        padding: 15px;
+        font-size: 13px;
+        line-height: 1.6;
+        max-height: 500px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        font-family: "Courier New", monospace;
+      }
+
+      .console-line {
+        margin: 4px 0;
+        padding: 2px 5px;
+      }
+
+      .pass {
+        color: #4ec9b0;
+      }
+
+      .fail {
+        color: #f48771;
+      }
+
+      .info {
+        color: #9cdcfe;
+      }
+
+      .warn {
+        color: #dcdcaa;
+      }
+
+      .error {
+        color: #f48771;
+        background: #3d2626;
+        padding: 5px;
+        border-left: 3px solid #f48771;
+        margin-left: -5px;
+        padding-left: 10px;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        color: #667eea;
+        font-weight: bold;
+        margin: 20px 0;
+      }
+
+      .loading.active {
+        display: block;
+      }
+
+      .loading::after {
+        content: " ⏳";
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          content: " ⏳";
+        }
+        25% {
+          content: " ⌛";
+        }
+        50% {
+          content: " ⏳";
+        }
+        75% {
+          content: " ⌛";
+        }
+      }
+
+      .summary {
+        background: #f9f9f9;
+        border: 2px solid #667eea;
+        border-radius: 5px;
+        padding: 20px;
+        margin-top: 20px;
+        display: none;
+      }
+
+      .summary.show {
+        display: block;
+      }
+
+      .summary h3 {
+        color: #667eea;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+      }
+
+      .stat {
+        background: white;
+        padding: 15px;
+        border-radius: 5px;
+        text-align: center;
+        border-left: 4px solid #667eea;
+      }
+
+      .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .stat-label {
+        color: #666;
+        font-size: 0.9em;
+        margin-top: 5px;
+      }
+
+      .stat.pass-stat {
+        border-left-color: #4ec9b0;
+      }
+
+      .stat.pass-stat .stat-number {
+        color: #4ec9b0;
+      }
+
+      .stat.fail-stat {
+        border-left-color: #f48771;
+      }
+
+      .stat.fail-stat .stat-number {
+        color: #f48771;
+      }
+
+      .stat.total-stat {
+        border-left-color: #9cdcfe;
+      }
+
+      .stat.total-stat .stat-number {
+        color: #9cdcfe;
+      }
+
+      .success-message {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 15px;
+        display: none;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .success-message.show {
+        display: block;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin-animation 1s linear infinite;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+
+      @keyframes spin-animation {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🧪 Test Runner</h1>
+        <p>Testes Automatizados - App de Clima</p>
+      </div>
+
+      <div class="content">
+        <!-- Help Box -->
+        <div class="help-box">
+          <h3>📖 Como Use Este Test Runner?</h3>
+          <p>
+            <strong>1.</strong> Clique em
+            <strong>"▶️ Rodar Todos os Testes"</strong> para executar todos os
+            testes da API
+          </p>
+          <p>
+            <strong>2.</strong> O console mostrará o progresso em tempo real
+          </p>
+          <p>
+            <strong>3.</strong> Testes em
+            <strong style="color: #4ec9b0">verde ✅</strong> = passou
+          </p>
+          <p>
+            <strong>4.</strong> Testes em
+            <strong style="color: #f48771">vermelho ❌</strong> = falhou
+          </p>
+          <p>
+            <strong>5.</strong> Ver resumo com estatísticas completas no final
+          </p>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+          <button class="primary" onclick="runAllTests()" id="runBtn">
+            ▶️ Rodar Todos os Testes
+          </button>
+          <button class="secondary" onclick="clearOutput()">
+            🗑️ Limpar Console
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+          <span class="spinner"></span>Executando testes...
+        </div>
+
+        <!-- Console Output -->
+        <div class="console" id="console">
+          <div class="console-line info">
+            📝 Console pronto. Clique em "Rodar Todos os Testes" para começar.
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary" id="summary">
+          <h3>📊 Resumo dos Testes</h3>
+          <div class="stats">
+            <div class="stat pass-stat">
+              <div class="stat-number" id="passCount">0</div>
+              <div class="stat-label">✅ Passaram</div>
+            </div>
+            <div class="stat fail-stat">
+              <div class="stat-number" id="failCount">0</div>
+              <div class="stat-label">❌ Falharam</div>
+            </div>
+            <div class="stat total-stat">
+              <div class="stat-number" id="totalCount">0</div>
+              <div class="stat-label">📈 Total</div>
+            </div>
+          </div>
+          <div class="success-message" id="successMsg">
+            🎉 Todos os testes passaram com sucesso!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/api.test.js"></script>
+    <script>
+      // ============================================
+      // FUNÇÕES PARA INTERFACE DO TEST RUNNER
+      // ============================================
+
+      /**
+       * Adicionar linha ao console
+       */
+      function addToConsole(message, type = "info") {
+        const consoleDiv = document.getElementById("console");
+        const line = document.createElement("div");
+        line.className = `console-line ${type}`;
+        line.textContent = message;
+        consoleDiv.appendChild(line);
+        // Auto scroll
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+      }
+
+      /**
+       * Limpar o console
+       */
+      function clearOutput() {
+        const consoleDiv = document.getElementById("console");
+        consoleDiv.innerHTML =
+          '<div class="console-line info">📝 Console limpo. Pronto para novos testes.</div>';
+        document.getElementById("summary").classList.remove("show");
+      }
+
+      /**
+       * Rodar todos os testes
+       */
+      async function runAllTests() {
+        clearOutput();
+        const runBtn = document.getElementById("runBtn");
+        const loading = document.getElementById("loading");
+        const summary = document.getElementById("summary");
+
+        // Desabilitar botão e mostrar loading
+        runBtn.disabled = true;
+        loading.classList.add("active");
+        summary.classList.remove("show");
+
+        try {
+          addToConsole("=".repeat(60), "info");
+          addToConsole("🧪 INICIANDO TESTES DA API", "info");
+          addToConsole("=".repeat(60), "info");
+
+          // Executar os testes
+          const result = await tester.run();
+
+          // Mostrar resumo
+          document.getElementById("passCount").textContent = result.passed;
+          document.getElementById("failCount").textContent = result.failed;
+          document.getElementById("totalCount").textContent = result.total;
+
+          if (result.failed === 0) {
+            document.getElementById("successMsg").classList.add("show");
+          } else {
+            document.getElementById("successMsg").classList.remove("show");
+          }
+
+          summary.classList.add("show");
+        } catch (error) {
+          addToConsole(`Erro ao executar testes: ${error.message}`, "error");
+        } finally {
+          // Re-habilitar botão e esconder loading
+          runBtn.disabled = false;
+          loading.classList.remove("active");
+          window.scrollTo(0, document.body.scrollHeight);
+        }
+      }
+
+      // Capturar logs do console para mostrar na interface
+      const originalLog = console.log;
+      const originalError = console.error;
+      const originalWarn = console.warn;
+
+      console.log = function (...args) {
+        originalLog(...args);
+        const message = args
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg) : String(arg),
+          )
+          .join(" ");
+        // Mostrar todas as mensagens
+        addToConsole(message, "info");
+      };
+
+      console.error = function (...args) {
+        originalError(...args);
+        const message = args
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg) : String(arg),
+          )
+          .join(" ");
+        addToConsole(message, "error");
+      };
+
+      // Mostrar mensagem quando página carrega
+      window.addEventListener("load", () => {
+        addToConsole("✅ Arquivos carregados: api.js e api.test.js", "pass");
+        addToConsole("📝 Total de testes disponíveis: 32", "info");
+        addToConsole(
+          '⏸️  Clique em "Rodar Todos os Testes" para começar',
+          "info",
+        );
+      });
+    </script>
+  </body>
+</html>
