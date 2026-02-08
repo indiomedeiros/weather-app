@@ -10,8 +10,14 @@ console.log("Carregando e executando testes...\n");
 
 try {
   // Ler os códigos
-  const apiCode = fs.readFileSync(path.join(__dirname, "js", "api.js"), "utf-8");
-  const testCode = fs.readFileSync(path.join(__dirname, "js", "api.test.js"), "utf-8");
+  const apiCode = fs.readFileSync(
+    path.join(__dirname, "js", "api.js"),
+    "utf-8",
+  );
+  const testCode = fs.readFileSync(
+    path.join(__dirname, "js", "api.test.js"),
+    "utf-8",
+  );
 
   // Criar um contexto global
   const globalContext = {
@@ -43,9 +49,12 @@ try {
   console.log(`- getWeatherData: ${typeof globalContext.getWeatherData}`);
   console.log(`- tester: ${typeof globalContext.tester}`);
   console.log(`- TestRunner: ${typeof globalContext.TestRunner}`);
-  
+
   // listar todas as chaves
-  console.log(`\nChaves em globalContext:`, Object.keys(globalContext).sort().slice(0, 20));
+  console.log(
+    `\nChaves em globalContext:`,
+    Object.keys(globalContext).sort().slice(0, 20),
+  );
 
   // Acessar tester do contexto
   const tester = globalContext.tester;

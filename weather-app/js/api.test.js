@@ -490,7 +490,7 @@ tester.describe("getCoordinates - Testes de Erro", () => {
           json: async () => ({ error: "Bad request" }),
           text: async () => "Bad request",
         });
-      };
+      });
 
       // Act & Assert
       await assert.assertThrows(async () => {
@@ -511,7 +511,7 @@ tester.describe("getCoordinates - Testes de Erro", () => {
           json: async () => ({ error: "Server error" }),
           text: async () => "Internal Server Error",
         });
-      };
+      });
 
       // Act & Assert
       await assert.assertThrows(async () => {
@@ -856,7 +856,7 @@ tester.describe("getWeatherData - Testes de Erro", () => {
           json: async () => ({ error: "Bad request" }),
           text: async () => "Bad request",
         });
-      };
+      });
 
       // Act & Assert
       await assert.assertThrows(async () => {
@@ -877,7 +877,7 @@ tester.describe("getWeatherData - Testes de Erro", () => {
           json: async () => ({ error: "Server error" }),
           text: async () => "Internal Server Error",
         });
-      };
+      });
 
       // Act & Assert
       await assert.assertThrows(async () => {
@@ -897,7 +897,7 @@ tester.describe("getWeatherData - Testes de Erro", () => {
         },
         text: async () => "Invalid JSON",
       });
-    };
+    });
 
     // Act & Assert
     await assert.assertThrows(async () => {

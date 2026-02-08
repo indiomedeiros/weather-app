@@ -44,7 +44,9 @@
       console.log = function (...args) {
         const message = args
           .map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg, null, 2) : String(arg)
+            typeof arg === "object"
+              ? JSON.stringify(arg, null, 2)
+              : String(arg),
           )
           .join(" ");
         logs.push(`LOG: ${message}`);
@@ -55,7 +57,7 @@
       console.error = function (...args) {
         const message = args
           .map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg) : String(arg)
+            typeof arg === "object" ? JSON.stringify(arg) : String(arg),
           )
           .join("  ");
         logs.push(`ERROR: ${message}`);
@@ -79,7 +81,9 @@
         logs.push(`getCoordinates: ${typeof getCoordinates}`);
         logs.push(`getWeatherData: ${typeof getWeatherData}`);
         logs.push(`tester: ${typeof tester}`);
-        logs.push(`tester.tests.length: ${tester?.tests?.length || 'undefined'}`);
+        logs.push(
+          `tester.tests.length: ${tester?.tests?.length || "undefined"}`,
+        );
 
         if (tester && tester.tests && tester.tests.length > 0) {
           logs.push("\nPrimeiros 3 testes:");
@@ -94,7 +98,9 @@
           try {
             const result = await tester.run();
             logs.push("\n" + "=".repeat(60));
-            logs.push(`RESULTADO FINAL: ${result.passed} passou, ${result.failed} falhou`);
+            logs.push(
+              `RESULTADO FINAL: ${result.passed} passou, ${result.failed} falhou`,
+            );
             logs.push("=".repeat(60));
           } catch (error) {
             logs.push(`ERRO AO RODAR TESTES: ${error.message}`);

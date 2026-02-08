@@ -84,7 +84,9 @@
       console.log = function (...args) {
         const message = args
           .map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg, null, 2) : String(arg)
+            typeof arg === "object"
+              ? JSON.stringify(arg, null, 2)
+              : String(arg),
           )
           .join(" ");
         addLine(message, "info");
@@ -94,7 +96,7 @@
       console.error = function (...args) {
         const message = args
           .map((arg) =>
-            typeof arg === "object" ? JSON.stringify(arg) : String(arg)
+            typeof arg === "object" ? JSON.stringify(arg) : String(arg),
           )
           .join(" ");
         addLine(message, "error");
@@ -110,7 +112,10 @@
         const result = await tester.run();
 
         addLine("=".repeat(60), "info");
-        addLine(`RESUMO: ${result.passed} passaram, ${result.failed} falharam`, "info");
+        addLine(
+          `RESUMO: ${result.passed} passaram, ${result.failed} falharam`,
+          "info",
+        );
         addLine("=".repeat(60), "info");
       }
 

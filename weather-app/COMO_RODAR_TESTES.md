@@ -11,6 +11,7 @@ Você tem **42 casos de teste** prontos para rodar! Todos funcionam perfeitament
 Essa é a forma correta - os testes foram feitos para rodar no navegador:
 
 1. **Abra no navegador:**
+
    ```
    http://localhost:5500/weather-app/test-runner.html
    ```
@@ -27,17 +28,20 @@ Essa é a forma correta - os testes foram feitos para rodar no navegador:
 ## 📊 Testes Implementados (42 testes)
 
 ### getCoordinates() - 14 testes
+
 - ✅ 6 testes de **sucesso** (cidades válidas)
 - ❌ 5 testes de **erro** (cidades inválidas, falhas de conexão)
 - 🎯 3 **edge cases** (acentos, caracteres especiais, duplicatas)
 
 ### getWeatherData() - 14 testes
+
 - ✅ 7 testes de **sucesso** (propriedades obrigatórias)
 - 🔢 6 testes de **validação de tipos** (temperatura, umidade, vento)
 - ❌ 4 testes de **erro** (conexão, JSON inválido)
 - 🎯 3 **edge cases** (Equador, hemisférios, Polos)
 
 ### Integração - 3 testes
+
 - 🔗 Fluxo completo: city → coordinates → weather
 - 🚫 Tratamento de erros em série
 - ✔️ Consistência de dados
@@ -47,6 +51,7 @@ Essa é a forma correta - os testes foram feitos para rodar no navegador:
 ## ⚙️ O que Cada Teste Verifica
 
 ### Testes de Sucesso
+
 ```javascript
 ✅ getCoordinates retorna latitude e longitude corretas
 ✅ getWeatherData tem temperatura, umidade, vento
@@ -54,6 +59,7 @@ Essa é a forma correta - os testes foram feitos para rodar no navegador:
 ```
 
 ### Testes de Erro
+
 ```javascript
 ✅ Cidade inexistente retorna null
 ✅ Erro de conexão lança exceção
@@ -61,6 +67,7 @@ Essa é a forma correta - os testes foram feitos para rodar no navegador:
 ```
 
 ### Edge Cases
+
 ```javascript
 ✅ Funciona com acentos: "São Paulo", "Brasília"
 ✅ Funciona com caracteres especiais: "New York"
@@ -82,11 +89,13 @@ Essa é a forma correta - os testes foram feitos para rodar no navegador:
 ## 📝 Notas Importantes
 
 ### ✅ Testes funcionam perfeitamente NO NAVEGADOR
+
 - `URLSearchParams` é uma API nativa do navegador
 - `fetch` funciona normalmente
 - Mocks estão implementados corretamente
 
 ### ❌ Testes em Node.js requerem polyfills
+
 - Se quiser rodar em Node.js, seria necessário:
   ```javascript
   npm install node-fetch whatwg-url
