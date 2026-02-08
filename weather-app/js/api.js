@@ -8,6 +8,73 @@ const GEOCODING_API = "https://geocoding-api.open-meteo.com/v1/search";
 const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
 
 // ============================================
+// SISTEMA DE CACHE
+// ============================================
+// Cache com expiração automática de 10 minutos (600000 ms)
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos em milissegundos
+
+// Objeto para armazenar dados em cache
+const apiCache = {
+  coordinates: {}, // Cache de coordenadas por nome de cidade
+  weather: {}, // Cache de dados de clima por "latitude,longitude"
+};
+
+// Função para verificar se um item do cache expirou
+function isCacheExpired(timestamp) {
+  return Date.now() - timestamp > CACHE_DURATION;
+}
+
+// Função para obter dados do cache de coordenadas
+function getCachedCoordinates(cityName) {
+  const cached = apiCache.coordinates[cityName];
+  
+  if (cached && !isCacheExpired(cached.timestamp)) {
+    console.log(`📦 Coordenadas de ${cityName} obtidas do cache`);
+    return cached.data;
+  }
+  
+  // Se expirou ou não existe, remover do cache
+  if (cached) {
+    delete apiCache.coordinates[cityName];
+  }
+  return null;
+}
+
+// Função para salvar coordenadas no cache
+function setCachedCoordinates(cityName, data) {
+  apiCache.coordinates[cityName] = {
+    data: data,
+    timestamp: Date.now(),
+  };
+}
+
+// Função para obter dados de clima do cache
+function getCachedWeather(latitude, longitude) {
+  const key = `${latitude},${longitude}`;
+  const cached = apiCache.weather[key];
+  
+  if (cached && !isCacheExpired(cached.timestamp)) {
+    console.log(`📦 Dados de clima (${key}) obtidos do cache`);
+    return cached.data;
+  }
+  
+  // Se expirou ou não existe, remover do cache
+  if (cached) {
+    delete apiCache.weather[key];
+  }
+  return null;
+}
+
+// Função para salvar dados de clima no cache
+function setCachedWeather(latitude, longitude, data) {
+  const key = `${latitude},${longitude}`;
+  apiCache.weather[key] = {
+    data: data,
+    timestamp: Date.now(),
+  };
+}
+
+// ============================================
 // FUNÇÃO: Buscar coordenadas de uma cidade
 // ============================================
 // Recebe: nome da cidade (texto)
@@ -16,6 +83,12 @@ const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
 //
 async function getCoordinates(cityName) {
   try {
+    // CACHE: Verificar se temos as coordenadas em cache
+    const cached = getCachedCoordinates(cityName);
+    if (cached !== null) {
+      return cached;
+    }
+
     // Preparar os parâmetros para a requisição
     const params = new URLSearchParams({
       name: cityName, // Nome da cidade para buscar
@@ -60,13 +133,17 @@ async function getCoordinates(cityName) {
       pais: result.country,
     });
 
-    // Retornar as informações importantes
-    return {
+    // CACHE: Salvar as coordenadas em cache para 10 minutos
+    const resultData = {
       latitude: result.latitude,
       longitude: result.longitude,
       name: result.name,
       country: result.country,
     };
+    setCachedCoordinates(cityName, resultData);
+
+    // Retornar as informações importantes
+    return resultData;
   } catch (error) {
     console.error("Erro ao buscar coordenadas:", error);
     throw error;
@@ -82,6 +159,12 @@ async function getCoordinates(cityName) {
 //
 async function getWeatherData(latitude, longitude) {
   try {
+    // CACHE: Verificar se temos os dados de clima em cache
+    const cached = getCachedWeather(latitude, longitude);
+    if (cached !== null) {
+      return cached;
+    }
+
     // PASSO 1: Preparar os parâmetros para a requisição
     // Os dados que a API precisa receber
     const params = new URLSearchParams();
@@ -121,6 +204,9 @@ async function getWeatherData(latitude, longitude) {
 
     // PASSO 5: Debug - Mostrar os dados recebidos
     console.log("Dados de clima recebidos:", data);
+
+    // CACHE: Salvar os dados de clima em cache para 10 minutos
+    setCachedWeather(latitude, longitude, data);
 
     // PASSO 6: Retornar todos os dados do clima
     return data;
